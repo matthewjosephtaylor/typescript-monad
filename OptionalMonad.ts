@@ -3,7 +3,7 @@ import { flatten } from "monad/Monads";
 
 export interface Optional<T> extends Promise<T>, Monad<T> {
   map: <U>(transform: Transform<T, U>) => Optional<U>;
-  flatmap: <U>(transform: Transform<T, Monad<U>>) => Optional<U>;
+  flatmap: <U>(transform: Transform<T, Optional<U>>) => Optional<U>;
   else: <U>(transform: UnitOrValue<U>) => Optional<U>;
 }
 
@@ -28,7 +28,7 @@ export type PromiseExecutor<T> = (
  * considered a fatal exception and will not be re-caught.
  *
  * NOTE: Promises technically aren't monads, but they are close enough to be
- * coerced into looking like one.
+ * coerced into one, if one is brave enough :)
  */
 export function optional<T>(
   promiseOrExecutor: Promise<T> | PromiseExecutor<T> = () => undefined,
@@ -67,8 +67,8 @@ export function optional<T>(
 
   const opt: Optional<T> = Object.assign(handledPromise, {
     map: mapFunctor,
-    flatmap: <U>(transform: Transform<T, Monad<U>>) => {
-      const nested: Optional<Monad<U>> = mapFunctor(transform);
+    flatmap: <U>(transform: Transform<T, Optional<U>>) => {
+      const nested: Optional<Optional<U>> = mapFunctor(transform);
       const flattened: Optional<U> = flatten(nested);
       return flattened;
     },
