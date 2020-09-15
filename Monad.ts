@@ -1,14 +1,19 @@
 export type Transform<T, U> = (value: T) => U;
 
-export type Monad<T> = {
+export interface Functor<T> {
+  map: <U>(transform: Transform<T, U>) => Functor<U>;
+}
+
+export interface Monad<T> extends Functor<T> {
   map: <U>(transform: Transform<T, U>) => Monad<U>;
-};
+  flatmap: <U>(transform: Transform<T, Monad<U>>) => Monad<U>;
+}
 
 export type Unit<T> = () => T;
 
 export type UnitOrValue<T> = Unit<T> | T;
 
-function unitOrValueToValue<T>(unitOrValue: UnitOrValue<T>): T {
+export function unitOrValueToValue<T>(unitOrValue: UnitOrValue<T>): T {
   if (unitOrValue === undefined) {
     return undefined;
   }
@@ -20,28 +25,25 @@ function unitOrValueToValue<T>(unitOrValue: UnitOrValue<T>): T {
 }
 
 /**
- * Take a value or a function that supplies a value and covert to Monad
+ * Take a value or a function that supplies a value and covert to a Functor
  */
-export function monad<T>(unitOrValue: UnitOrValue<T>): Monad<T> {
+export function functor<T>(unitOrValue: UnitOrValue<T>): Functor<T> {
   return {
     map: (transform) => {
-      return monad(transform(unitOrValueToValue(unitOrValue)));
+      return functor(transform(unitOrValueToValue(unitOrValue)));
     },
   };
 }
 
 /**
- * If it walks and talks like a Monad, it is a Monad
+ * If it walks and talks like a Functor, it is a Functor
  * WARNING: The Typescript type system isn't powerful enough to determine the
- *  _type_ within the Monad
+ *  _type_ within the Functor
  * Suggestion: Use {@link object/Objects::toType}
  */
-export function isMonad(maybe: any): maybe is Monad<unknown> {
+export function isFunctor(maybe: any): maybe is Functor<unknown> {
   if (maybe === undefined) {
     return undefined;
   }
-  return (
-    typeof maybe === "object" &&
-    typeof maybe["map"] == "function"
-  );
+  return typeof maybe === "object" && typeof maybe["map"] == "function";
 }
