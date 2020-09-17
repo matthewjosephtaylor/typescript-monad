@@ -1,3 +1,4 @@
+import { Optional, PromiseExecutor } from "monad/OptionalMonad";
 /**
  * Either left or right.
  *
@@ -9,9 +10,9 @@
  *  - Know that some people have a reversed attitude on this subject, and drive on the wrong side of the road
  */
 
-import { Monad, Transform, UnitOrValue, unitOrValueToValue } from "./Monad";
+import { Monad, Transform } from "./Monad";
 
-export interface Either<L, R> extends Monad<R> {
+export interface Either<L, R> extends Monad<R>, Promise<R> {
   map: <U>(transform: Transform<R, U>) => Either<L, U>;
   flatmap: <U>(transform: Transform<R, Monad<U>>) => Either<L, U>;
   left: <U>(transform: Transform<L, U>) => Either<U, R>;
@@ -19,22 +20,27 @@ export interface Either<L, R> extends Monad<R> {
 }
 
 export function left<L, R>(value: L): Either<L, R> {
-  return either(value, undefined, undefined);
+  // return either(value, undefined, undefined);
+  const eitherTuple: [L, R] = [value, undefined];
+  return either(Promise.resolve(eitherTuple), () => value);
 }
 
 export function right<L, R>(
-  unitOrValue: UnitOrValue<R>,
+  rightValue: R,
   errorToLeftValue: (reason: unknown) => L
 ): Either<L, R> {
-  return either(undefined, unitOrValue, errorToLeftValue);
+  const eitherTuple: [L, R] = [undefined, rightValue];
+  return either(Promise.resolve(eitherTuple), errorToLeftValue);
 }
+
+export type ErrorHandler<T> = (reason: unknown) => T;
 
 /**
  * Either which is locked to the left once a left value exists
  *
  * NOTE: the map function works on the _right_ value. If there is no right value
  * then map will short-circuit and produce the known left
- * 
+ *
  * Error is either an exception OR a right-value of 'undefined' while mapping
  *
  * @param leftValue undefined means the right value is active
@@ -43,62 +49,86 @@ export function right<L, R>(
  */
 
 export function either<L, R>(
-  leftValue?: L,
-  rightUnitOrValue?: UnitOrValue<R>,
-  errorToLeftValue?: (reason: unknown) => L
+  rightPromiseOrExecutor: Promise<[L, R]> | PromiseExecutor<[L, R]> = () =>
+    undefined,
+  errorToLeft: (reason: unknown) => L
 ): Either<L, R> {
-  const mapFunctor: <U>(transform: Transform<R, U>) => Either<L, U> = (
-    transform
+  const promiseLR: Promise<[L, R]> =
+    rightPromiseOrExecutor instanceof Promise
+      ? rightPromiseOrExecutor
+      : new Promise(rightPromiseOrExecutor);
+
+  const mapFunctor: <U>(transform: Transform<R, U>) => Either<L, U> = <U>(
+    transform: Transform<R, U>
   ) => {
-    try {
-      /**  locked to the left once a left value exists */
-      if (leftValue !== undefined) {
-        return left(leftValue);
-      }
-      const rightResult = transform(unitOrValueToValue(rightUnitOrValue));
-      if (rightResult === undefined) {
-        return left(
-          errorToLeftValue(
-            new Error("right result of either mapping was undefined")
-          )
-        );
-      }
-      return right(rightResult, errorToLeftValue);
-    } catch (reason: unknown) {
-      return left(errorToLeftValue(reason));
-    }
+    const transformedPromise: Promise<[L, U]> = promiseLR
+      .then((valueLR) => {
+        const [valueL, valueR] = valueLR;
+        if (valueR === undefined) {
+          const reason = new Error("either: Undefined right value");
+          const errorLeft: L = errorToLeft(reason);
+          const noRight: U = undefined;
+          const result: [L, U] = [errorLeft, noRight];
+          return result;
+        }
+        const u: U = transform(valueR);
+        const result: [L, U] = [valueL, u];
+        return result;
+      })
+      .catch((reason) => {
+        const errorLeft: L = errorToLeft(reason);
+        const noRight: U = undefined;
+        const result: [L, U] = [errorLeft, noRight];
+        return result;
+      });
+    return either(transformedPromise, errorToLeft);
   };
   const flatmapFunctor: <U>(
     transform: Transform<R, Either<L, U>>
   ) => Either<L, U> = (transform) => {
-    if (leftValue) {
-      return left(leftValue);
-    }
-    return transform(unitOrValueToValue(rightUnitOrValue));
+    return either((resolve) => {
+      mapFunctor(transform).left((l) => resolve([l, undefined]));
+      mapFunctor(transform).right((lu) => {
+        lu.left((l) => resolve([l, undefined]));
+        lu.right((u) => resolve([undefined, u]));
+      });
+    }, errorToLeft);
   };
-  const leftFunctor: <U>(transform: Transform<L, U>) => Either<U, R> = (
-    transform
+
+  const leftFunctor: <U>(transform: Transform<L, U>) => Either<U, R> = <U>(
+    transform: Transform<L, U>
   ) => {
-    if (leftValue === undefined) {
-      return right(unitOrValueToValue(rightUnitOrValue), transform);
-    }
-    return left(transform(leftValue));
+    const transformedPromise: Promise<[U, R]> = promiseLR.then((lr) => {
+      const [l, r] = lr;
+      if (l === undefined) {
+        return [undefined, r];
+      }
+      const u = transform(l);
+      return [u, r];
+    });
+    return either(transformedPromise, transform);
   };
-  const rightFunctor: <U>(transform: Transform<R, U>) => Either<L, U> = (
-    transform
-  ) => {
-    if (leftValue !== undefined) {
-      return left(leftValue);
-    }
-    return right(
-      transform(unitOrValueToValue(rightUnitOrValue)),
-      errorToLeftValue
-    );
-  };
-  return {
+
+  const promiseR = promiseLR.then((lr) => lr[1]);
+  const eth: Either<L, R> = Object.assign(promiseR, {
     map: mapFunctor,
     flatmap: flatmapFunctor,
     left: leftFunctor,
-    right: rightFunctor,
-  };
+    right: mapFunctor,
+  });
+  return eth;
 }
+
+function tests() {
+  const eth: Either<string, number> = right(22, (reason) => "WTF" + reason);
+  eth.right((v) => console.log("right value", v));
+  eth
+    .right((v) => {
+      throw new Error("oh no!");
+    })
+    .left((v) => v + "NOOOOO")
+    // .right((v) => console.log("SHOULD NOT BE", v))
+    .left((v) => console.log("after all this I got", v));
+}
+
+// tests();

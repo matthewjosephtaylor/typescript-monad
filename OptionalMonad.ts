@@ -1,3 +1,4 @@
+import { Either, right } from "monad/EitherMonad";
 import { Monad, Transform, UnitOrValue, unitOrValueToValue } from "monad/Monad";
 import { flatten } from "monad/Monads";
 
