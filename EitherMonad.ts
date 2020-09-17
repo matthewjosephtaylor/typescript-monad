@@ -35,23 +35,28 @@ export function right<L, R>(
 
 export type ErrorHandler<T> = (reason: unknown) => T;
 
+export type Absurd<T> = () => void;
+
 /**
  * Either which is locked to the left once a left value exists
+ *
+ * Based on {@link Promise} which uses the _right_ value for 'then-ing'
+ *
+ * Normally constructed via {@link left} or {@link right}
  *
  * NOTE: the map function works on the _right_ value. If there is no right value
  * then map will short-circuit and produce the known left
  *
- * Error is either an exception OR a right-value of 'undefined' while mapping
+ * @param errorHandler used when right-value mapping excepts to transform the 
+ * reason into a left-value
  *
- * @param leftValue undefined means the right value is active
- * @param rightUnitOrValue
- * @param errorToLeftValue
+ * Error is either an exception OR a right-value of 'undefined' while mapping
  */
-
 export function either<L, R>(
   rightPromiseOrExecutor: Promise<[L, R]> | PromiseExecutor<[L, R]> = () =>
     undefined,
-  errorToLeft: (reason: unknown) => L
+  errorHandler: ErrorHandler<L> = () => undefined,
+  undefinedIsError: boolean = true
 ): Either<L, R> {
   const promiseLR: Promise<[L, R]> =
     rightPromiseOrExecutor instanceof Promise
@@ -64,9 +69,9 @@ export function either<L, R>(
     const transformedPromise: Promise<[L, U]> = promiseLR
       .then((valueLR) => {
         const [valueL, valueR] = valueLR;
-        if (valueR === undefined) {
+        if (valueR === undefined && undefinedIsError) {
           const reason = new Error("either: Undefined right value");
-          const errorLeft: L = errorToLeft(reason);
+          const errorLeft: L = errorHandler(reason);
           const noRight: U = undefined;
           const result: [L, U] = [errorLeft, noRight];
           return result;
@@ -76,12 +81,12 @@ export function either<L, R>(
         return result;
       })
       .catch((reason) => {
-        const errorLeft: L = errorToLeft(reason);
+        const errorLeft: L = errorHandler(reason);
         const noRight: U = undefined;
         const result: [L, U] = [errorLeft, noRight];
         return result;
       });
-    return either(transformedPromise, errorToLeft);
+    return either(transformedPromise, errorHandler);
   };
   const flatmapFunctor: <U>(
     transform: Transform<R, Either<L, U>>
@@ -92,7 +97,7 @@ export function either<L, R>(
         lu.left((l) => resolve([l, undefined]));
         lu.right((u) => resolve([undefined, u]));
       });
-    }, errorToLeft);
+    }, errorHandler);
   };
 
   const leftFunctor: <U>(transform: Transform<L, U>) => Either<U, R> = <U>(
