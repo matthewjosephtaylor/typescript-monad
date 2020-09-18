@@ -1,4 +1,3 @@
-import { Optional, PromiseExecutor } from "monad/OptionalMonad";
 /**
  * Either left or right.
  *
@@ -10,11 +9,12 @@ import { Optional, PromiseExecutor } from "monad/OptionalMonad";
  *  - Know that some people have a reversed attitude on this subject, and drive on the wrong side of the road
  */
 
+import { PromiseExecutor } from "monad/OptionalMonad";
 import { Monad, Transform } from "./Monad";
 
 export interface Either<L, R> extends Monad<R>, Promise<R> {
   map: <U>(transform: Transform<R, U>) => Either<L, U>;
-  flatmap: <U>(transform: Transform<R, Monad<U>>) => Either<L, U>;
+  flatmap: <U>(transform: Transform<R, Either<L, U>>) => Either<L, U>;
   left: <U>(transform: Transform<L, U>) => Either<U, R>;
   right: <U>(transform: Transform<R, U>) => Either<L, U>;
 }
@@ -26,11 +26,20 @@ export function left<L, R>(value: L): Either<L, R> {
 }
 
 export function right<L, R>(
-  rightValue: R,
-  errorToLeftValue: (reason: unknown) => L
+  rightValueOrPromise: R | Promise<R>,
+  errorHandler: ErrorHandler<L> = (reason) =>
+    (new Error(String(reason)) as unknown) as L,
+  undefinedIsError: boolean = true
 ): Either<L, R> {
-  const eitherTuple: [L, R] = [undefined, rightValue];
-  return either(Promise.resolve(eitherTuple), errorToLeftValue);
+  const promise =
+    rightValueOrPromise instanceof Promise
+      ? rightValueOrPromise
+      : Promise.resolve(rightValueOrPromise);
+  const transformedPromise = promise.then((rightValue) => {
+    const eitherTuple: [L, R] = [undefined, rightValue];
+    return eitherTuple;
+  });
+  return either(transformedPromise, errorHandler, undefinedIsError);
 }
 
 export type ErrorHandler<T> = (reason: unknown) => T;
@@ -47,7 +56,7 @@ export type Absurd<T> = () => void;
  * NOTE: the map function works on the _right_ value. If there is no right value
  * then map will short-circuit and produce the known left
  *
- * @param errorHandler used when right-value mapping excepts to transform the 
+ * @param errorHandler used when right-value mapping excepts to transform the
  * reason into a left-value
  *
  * Error is either an exception OR a right-value of 'undefined' while mapping
