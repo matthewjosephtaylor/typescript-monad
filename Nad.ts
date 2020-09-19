@@ -65,7 +65,7 @@ export function toNad<E, T>(
   errorHandler: ErrorHandler<E> = (reason) => reason as E,
   isUndefinedError: boolean = true
 ): Nad<E, T> {
-  let promise: Promise<T> = nadValueToPromise(nadValue);
+  const promise: Promise<T> = nadValueToPromise(nadValue);
   const selfPromise: Promise<T> = promise.then((value) => {
     if (isUndefinedError && value === undefined) {
       throw new Error("Undefined value");
