@@ -1,14 +1,16 @@
 # MJT Typescript Monad
 
-Some simple and handy things for creating / working with [Monads](<https://en.wikipedia.org/wiki/Monad_(functional_programming)>) in Typescript
+Some simple and handy things for creating / working with
+[Monads](<https://en.wikipedia.org/wiki/Monad_(functional_programming)>) in
+Typescript
 
 ## Why?
 
-This module is half learning exercise / half opinions of how I want these
-things to behave in my Typescript environment.
+This module is half learning exercise / half opinions of how I want these things
+to behave in my Typescript environment.
 
-Like a Jedi having to craft his own lightsaber, it seems those who go down
-the FP path must at some point craft the classic Monads for themselves.
+Like a Jedi having to craft his own lightsaber, it seems those who go down the
+FP path must at some point craft the classic Monads for themselves.
 
 ## Warning
 
@@ -24,8 +26,12 @@ to follow any rules regarding semver. _I_ trust it but make no guarantees.
 ## Lessons Learned
 
 - Promise is the primary 'Monad' in the Javascript ecosystem
-- If one tries to make monads outside of the Promise one is in for some 'nested Monad hell'
-- If one tries to _extend_ promises the hell is less but then one is left with a Promise that the user should not use (data inside effectively becomes 'private') which causes issues since it is a Promise but 'then' produces odd results.
+- If one tries to make monads outside of the Promise one is in for some 'nested
+  Monad hell'
+- If one tries to _extend_ promises the hell is less but then one is left with a
+  Promise that the user should not use (data inside effectively becomes
+  'private') which causes issues since it is a Promise but 'then' produces odd
+  results.
 - Optional is just a stripped down version of Either
 
 # Questions
@@ -35,12 +41,18 @@ to follow any rules regarding semver. _I_ trust it but make no guarantees.
 
 ## Clarity on what I really want
 
-- Promises promote async await behavior that I consider harmful and so I'm attempting to _hide_ promises behind a layer of abstraction more to my liking
+- Promises promote async await behavior that I consider harmful and so I'm
+  attempting to _hide_ promises behind a layer of abstraction more to my liking
 
 ## Is this a good idea?
 
 - Perhaps what is wanted is merely better 'operational semantics' for Promises
   - Promise.all 'do' syntax
+
+## Nad
+
+[Nad](./Nad.ts) is a Mo*nad* with an internal hidden promise and more functional
+(value-oriented) style error-handling.
 
 ## License
 
