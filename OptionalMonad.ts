@@ -1,16 +1,12 @@
 import { either, Either, right } from "monad/EitherMonad";
 import { Monad, Transform, UnitOrValue, unitOrValueToValue } from "monad/Monad";
-import { flatten } from "monad/Monads";
+import { flatten, PromiseExecutor } from "monad/Monads";
 
 export interface Optional<T> extends Either<any, T>, Monad<T> {
   map: <U>(transform: Transform<T, U>) => Optional<U>;
   flatmap: <U>(transform: Transform<T, Optional<U>>) => Optional<U>;
 }
 
-export type PromiseExecutor<T> = (
-  resolve: (value?: T | PromiseLike<T>) => void,
-  reject: (reason?: any) => void
-) => void;
 
 /**
  * Optional monad (kinda)
@@ -60,6 +56,7 @@ export function optional<T>(
   const flatmapFunctor: <U>(
     transform: Transform<T, Optional<U>>
   ) => Optional<U> = (transform) => {
+    throw new Error("ASDFASDF")
     return optional(eth.flatmap(transform));
   };
 

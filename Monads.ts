@@ -5,6 +5,17 @@
 import { Optional, optional } from "./OptionalMonad";
 import { Functor } from "./Monad";
 
+export type PromiseExecutor<T> = (
+  resolve: (value?: T | PromiseLike<T>) => void,
+  reject: (reason?: any) => void
+) => void;
+
+export function isPromiseExecutor<T>(maybe: any): maybe is PromiseExecutor<T> {
+  return typeof maybe === "function";
+}
+
+export type ErrorHandler<T> = (reason: unknown) => T;
+
 /**
  * Flatten nested Functors
  * Takes advantage of Optional, which in turn takes advantage of Promises
@@ -31,7 +42,7 @@ export function flatten<A>(nested: Functor<Functor<A>>): Optional<A> {
 /**
  * Unrolled 'loop' of Functor composers
  *
- * At some point there might be a more generalizable way of doing this with 
+ * At some point there might be a more generalizable way of doing this with
  * typescript. Perhaps there is already and I'm just unaware :)
  *
  * I think the rule of 3-5 applies here so likely this unrolled 'loop' should

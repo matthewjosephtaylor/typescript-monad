@@ -9,7 +9,7 @@
  *  - Know that some people have a reversed attitude on this subject, and drive on the wrong side of the road
  */
 
-import { PromiseExecutor } from "monad/OptionalMonad";
+import { ErrorHandler, PromiseExecutor } from "./Monads";
 import { Monad, Transform } from "./Monad";
 
 export interface Either<L, R> extends Monad<R>, Promise<R> {
@@ -26,15 +26,15 @@ export function left<L, R>(value: L): Either<L, R> {
 }
 
 export function right<L, R>(
-  rightValueOrPromise: R | Promise<R>,
+  promiseOrExecutor: Promise<R> | PromiseExecutor<R>,
   errorHandler: ErrorHandler<L> = (reason) =>
     (new Error(String(reason)) as unknown) as L,
   undefinedIsError: boolean = true
 ): Either<L, R> {
   const promise =
-    rightValueOrPromise instanceof Promise
-      ? rightValueOrPromise
-      : Promise.resolve(rightValueOrPromise);
+    promiseOrExecutor instanceof Promise
+      ? promiseOrExecutor
+      : new Promise(promiseOrExecutor);
   const transformedPromise = promise.then((rightValue) => {
     const eitherTuple: [L, R] = [undefined, rightValue];
     return eitherTuple;
@@ -42,7 +42,6 @@ export function right<L, R>(
   return either(transformedPromise, errorHandler, undefinedIsError);
 }
 
-export type ErrorHandler<T> = (reason: unknown) => T;
 
 export type Absurd<T> = () => void;
 
@@ -62,15 +61,15 @@ export type Absurd<T> = () => void;
  * Error is either an exception OR a right-value of 'undefined' while mapping
  */
 export function either<L, R>(
-  rightPromiseOrExecutor: Promise<[L, R]> | PromiseExecutor<[L, R]> = () =>
+  promiseOrExecutor: Promise<[L, R]> | PromiseExecutor<[L, R]> = () =>
     undefined,
   errorHandler: ErrorHandler<L> = () => undefined,
   undefinedIsError: boolean = true
 ): Either<L, R> {
   const promiseLR: Promise<[L, R]> =
-    rightPromiseOrExecutor instanceof Promise
-      ? rightPromiseOrExecutor
-      : new Promise(rightPromiseOrExecutor);
+    promiseOrExecutor instanceof Promise
+      ? promiseOrExecutor
+      : new Promise(promiseOrExecutor);
 
   const mapFunctor: <U>(transform: Transform<R, U>) => Either<L, U> = <U>(
     transform: Transform<R, U>
@@ -134,15 +133,15 @@ export function either<L, R>(
 }
 
 function tests() {
-  const eth: Either<string, number> = right(22, (reason) => "WTF" + reason);
-  eth.right((v) => console.log("right value", v));
-  eth
-    .right((v) => {
-      throw new Error("oh no!");
-    })
-    .left((v) => v + "NOOOOO")
-    // .right((v) => console.log("SHOULD NOT BE", v))
-    .left((v) => console.log("after all this I got", v));
+  // const eth: Either<string, number> = right(22, (reason) => "WTF" + reason);
+  // eth.right((v) => console.log("right value", v));
+  // eth
+  //   .right((v) => {
+  //     throw new Error("oh no!");
+  //   })
+  //   .left((v) => v + "NOOOOO")
+  //   // .right((v) => console.log("SHOULD NOT BE", v))
+  //   .left((v) => console.log("after all this I got", v));
 }
 
 // tests();

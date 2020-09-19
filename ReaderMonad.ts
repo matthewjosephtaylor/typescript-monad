@@ -1,4 +1,5 @@
 import { Functor, Monad, Transform } from "monad/Monad";
+import { Optional } from "monad/OptionalMonad";
 
 type AskFunctor<Q, T> = (question: Q) => Reader<Q, T>;
 

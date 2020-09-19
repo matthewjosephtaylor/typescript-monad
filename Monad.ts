@@ -1,12 +1,21 @@
 export type Transform<T, U> = (value: T) => U;
 
+
+export type MapFunctor<T> = <U>(transform: Transform<T, U>) => Functor<U>;
+
+export type FlatmapFunctor<T> = <U>(
+  transform: Transform<T, Functor<U>>
+) => Functor<U>;
+
 export interface Functor<T> {
-  map: <U>(transform: Transform<T, U>) => Functor<U>;
+  // map: <U>(transform: Transform<T, U>) => Functor<U>;
+  map: MapFunctor<T>;
 }
 
 export interface Monad<T> extends Functor<T> {
-  map: <U>(transform: Transform<T, U>) => Monad<U>;
-  flatmap: <U>(transform: Transform<T, Monad<U>>) => Monad<U>;
+  // map: <U>(transform: Transform<T, U>) => Monad<U>;
+  // flatmap: <U>(transform: Transform<T, Monad<U>>) => Monad<U>;
+  flatmap: FlatmapFunctor<T>;
 }
 
 export type Unit<T> = () => T;
