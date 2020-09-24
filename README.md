@@ -20,8 +20,9 @@ highly recommend checking those out for 'production work'.
 Feel free to inspect this code and use if desired, however note that I will
 certainly update this project without warning as my knowledge/opinions change.
 
-This is a 'working' module (module I include in my work) which does not attempt
-to follow any rules regarding semver. _I_ trust it but make no guarantees.
+[Abandoned in Place](#abandoned-in-place) ~~This is a 'working' module (module I
+include in my work) which does not attempt to follow any rules regarding semver.
+_I_ trust it but make no guarantees.~~
 
 ## Lessons Learned
 
@@ -53,6 +54,33 @@ to follow any rules regarding semver. _I_ trust it but make no guarantees.
 
 [Nad](./Nad.ts) is a Mo*nad* with an internal hidden promise and more functional
 (value-oriented) style error-handling.
+
+## Thoughts After Experimentation
+
+- I'm glad I went through this challenge as I feel I now have a clearer idea of
+  how Functors and Monads work _under the hood_.
+- Abstractions need to be useful enough to carry their own weight and provide
+  additional benefits
+- Tacking abstractions like Reader, Either, or Maybe _on top of_ Promises adds
+  more weight than I think provide benefit
+  - Use _undefined_ instead of Maybe Monad
+  - Use tuple with first value being the 'right' value for Either/Exception
+    Monad
+  - Not sure I understand Reader enough to know if I was 'doing it right'. In my
+    experiments it appeared to _hide_ the dependency a bit too well and created
+    confusion. Perhaps it is due more to my history of c-like languages, I don't
+    _expect_ dependencies to be asked for _later_ and so forget.
+- Overall I would currently proscribe sticking with the natural 'Monad-likes' of
+  Promises and Arrays in a Javascript/Typescript environment. They aren't
+  perfect, but they have the overwhelming advantage of not needing a new
+  Abstraction layer being 'imported', and therefore will stay 'in style' for
+  longer.
+
+## Abandoned in Place
+
+- I don't anticipate using this module myself going forward. Leaving as a
+  reminder to myself for future reference, and to serve as an example to others
+  who might be traveling a similar path.
 
 ## License
 

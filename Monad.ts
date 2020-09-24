@@ -1,6 +1,5 @@
 export type Transform<T, U> = (value: T) => U;
 
-
 export type MapFunctor<T> = <U>(transform: Transform<T, U>) => Functor<U>;
 
 export type FlatmapFunctor<T> = <U>(
@@ -19,6 +18,7 @@ export interface Monad<T> extends Functor<T> {
 }
 
 export type Unit<T> = () => T;
+
 
 export type UnitOrValue<T> = Unit<T> | T;
 

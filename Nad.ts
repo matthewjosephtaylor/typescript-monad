@@ -4,9 +4,7 @@ import { ErrorHandler, isPromiseExecutor, PromiseExecutor } from "./Monads";
 export type ElseFunctor<E> = <U>(transform: Transform<E, U>) => Nad<E, U>;
 export type FinallyFunctor<E> = <U>(unit: () => U) => Nad<E, U>;
 
-export type CatchFunctor<T> = <U>(
-  transform: Transform<unknown, U>
-) => Nad<U, T>;
+export type CatchFunctor<E, T> = <U>(transform: Transform<E, U>) => Nad<U, T>;
 
 export interface NadMapFunctor<E, T> extends MapFunctor<T> {
   <U>(transform: Transform<T, U>): Nad<E, U>;
@@ -37,16 +35,18 @@ export interface NadFlatmapFunctor<E, T> extends FlatmapFunctor<T> {
 export interface Nad<E, T> extends Monad<T> {
   map: NadMapFunctor<E, T>;
   flatmap: NadFlatmapFunctor<E, T>;
-  catch: CatchFunctor<T>;
+  catch: CatchFunctor<E, T>;
   finally: FinallyFunctor<E>;
   else: ElseFunctor<E>;
 }
 
 export type NadValue<T> = Promise<T> | PromiseExecutor<T> | T;
 
-function nadValueToPromise<T>(nadValue: NadValue<T>): Promise<T> {
+function nadValueToPromise<T>(nadValue?: NadValue<T>): Promise<T> {
   let promise: Promise<T> = undefined;
-  if (nadValue instanceof Promise) {
+  if (nadValue === undefined) {
+    promise = new Promise(() => {});
+  } else if (nadValue instanceof Promise) {
     promise = nadValue;
   } else if (isPromiseExecutor(nadValue)) {
     promise = new Promise(nadValue);
@@ -60,8 +60,8 @@ function nadValueToPromise<T>(nadValue: NadValue<T>): Promise<T> {
  * Construct a {@link Nad} given a {@link Promise} or {@link PromiseExecutor}
  * @see {@link Nad} for definition of Nad behavior
  */
-export function toNad<E, T>(
-  nadValue: Promise<T> | PromiseExecutor<T> | T,
+export function toNad<E,T>(
+  nadValue?: Promise<T> | PromiseExecutor<T> | T,
   errorHandler: ErrorHandler<E> = (reason) => reason as E,
   isUndefinedError: boolean = true
 ): Nad<E, T> {
@@ -112,9 +112,7 @@ export function toNad<E, T>(
     return toNad(transformedPromise, errorHandler, isUndefinedError);
   };
 
-  const catchFunctor: CatchFunctor<T> = <U>(
-    transform: Transform<unknown, U>
-  ) => {
+  const catchFunctor: CatchFunctor<E, T> = <U>(transform: Transform<E, U>) => {
     return toNad(selfPromise, transform, isUndefinedError);
   };
 
@@ -135,4 +133,8 @@ export function toNad<E, T>(
     catch: catchFunctor,
     finally: finallyFunctor,
   };
+}
+
+export function toErrorNad<E, T>(errorValue: E): Nad<E, T> {
+  return toNad(undefined, () => errorValue);
 }
