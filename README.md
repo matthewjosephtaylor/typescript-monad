@@ -70,7 +70,7 @@ _I_ trust it but make no guarantees.~~
     experiments it appeared to _hide_ the dependency a bit too well and created
     confusion. Perhaps it is due more to my history of c-like languages, I don't
     _expect_ dependencies to be asked for _later_ and so forget.
-- Overall I would currently proscribe sticking with the natural 'Monad-likes' of
+- Overall I would currently prescribe sticking with the natural 'Monad-likes' of
   Promises and Arrays in a Javascript/Typescript environment. They aren't
   perfect, but they have the overwhelming advantage of not needing a new
   Abstraction layer being 'imported', and therefore will stay 'in style' for
